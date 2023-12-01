@@ -5,7 +5,7 @@ fn is_num(byte: u8) -> bool {
     if byte >= b'0' && byte <= b'9' {
         true
     } else {
-        false 
+        false
     }
 }
 
@@ -18,7 +18,7 @@ fn ascii_to_int(byte: u8) -> Option<u8> {
 }
 
 fn main() -> std::io::Result<()> {
-    const BUFFER_LEN:usize = 512;
+    const BUFFER_LEN: usize = 512;
     let mut buffer = [0u8; BUFFER_LEN];
     let mut total: u16 = 0;
     let mut file = File::open("input")?;
@@ -30,12 +30,12 @@ fn main() -> std::io::Result<()> {
             if is_num(byte) {
                 if num_1.is_none() {
                     num_1 = Some(byte);
-                } 
-                 num_2 = Some(byte);
-            }
-            else if byte == 10 {
+                }
+                num_2 = Some(byte);
+            } else if byte == 10 {
                 total += (ascii_to_int(num_1.expect("num_1 is empty"))
-                    .expect("num_1 is not a valid digit") * 10) as u16;
+                    .expect("num_1 is not a valid digit")
+                    * 10) as u16;
                 total += (ascii_to_int(num_2.expect("num_2 is empty"))
                     .expect("num_2 is not a valid digit")) as u16;
                 num_1 = None;
