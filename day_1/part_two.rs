@@ -28,19 +28,35 @@ fn main() -> std::io::Result<()> {
     let mut num_1 = None;
     let mut num_2 = None;
     for line in reader.lines() {
+        let mut line_value = 0;
         let line = line?;
+        let mut str = String::new();
         for byte in line.bytes() {
             if is_num(byte) {
+                str.clear();
                 if num_1.is_none() {
-                    num_1 = Some(byte);
+                    num_1 = Some(ascii_to_int(byte)).expect("not a valid digit");
                 }
-                num_2 = Some(byte);
+                num_2 = Some(ascii_to_int(byte)).expect("not a valid digit");
+            } else {
+                str.push(char::from_u32(byte as u32).expect("not a valid char"));
+                if str.len() >= 3 {
+                    for (key, value) in &map {
+                        if str.contains(key) {
+                            if num_1.is_none() {
+                                num_1 = Some(*value);
+                            }
+                            num_2 = Some(*value);
+                            str.clear();
+                        }
+                    }
+                }
             }
         }
-        total += (ascii_to_int(num_1.expect("num_1 is empty")).expect("num_1 is not a valid digit")
-            * 10) as u16;
-        total += (ascii_to_int(num_2.expect("num_2 is empty")).expect("num_2 is not a valid digit"))
-            as u16;
+        line_value += (num_1.expect("num_1 is empty") * 10) as u16;
+        line_value += num_2.expect("num_2 is empty") as u16;
+        println!("{} {}", line, line_value);
+        total += line_value;
         num_1 = None;
         num_2 = None;
     }
