@@ -15,53 +15,56 @@ static NUMBERS: &[(&str, u8)] = &[
     ("nine", 9),
 ];
 
+static NUMBERS_REVERSED: &[(&str, u8)] = &[
+    ("orez", 0),
+    ("eno", 1),
+    ("owt", 2),
+    ("eerht", 3),
+    ("ruof", 4),
+    ("evif", 5),
+    ("xis", 6),
+    ("neves", 7),
+    ("thgie", 8),
+    ("enin", 9),
+];
+
 fn main() -> std::io::Result<()> {
     let map: HashMap<_, _> = NUMBERS.iter().cloned().collect();
-    for (key, value) in &map {
-        println!("{} -> {}", key, value);
-    }
-    // const BUFFER_LEN:usize = 512;
-    // let mut buffer = [0u8; BUFFER_LEN];
+    let map_reversed: HashMap<_, _> = NUMBERS_REVERSED.iter().cloned().collect();
     let mut total: u16 = 0;
     let file = File::open("input")?;
     let reader = BufReader::new(file);
-    let mut num_1 = None;
-    let mut num_2 = None;
-    for line in reader.lines() {
+    for line_result in reader.lines() {
+        let line = line_result?;
+        let num_1 = find_first_num(&line, &map);
+        let num_2 = find_first_num(&line.chars().rev().collect::<String>(), &map_reversed);
         let mut line_value = 0;
-        let line = line?;
-        let mut str = String::new();
-        for byte in line.bytes() {
-            if is_num(byte) {
-                str.clear();
-                if num_1.is_none() {
-                    num_1 = Some(ascii_to_int(byte)).expect("not a valid digit");
-                }
-                num_2 = Some(ascii_to_int(byte)).expect("not a valid digit");
-            } else {
-                str.push(char::from_u32(byte as u32).expect("not a valid char"));
-                if str.len() >= 3 {
-                    for (key, value) in &map {
-                        if str.contains(key) {
-                            if num_1.is_none() {
-                                num_1 = Some(*value);
-                            }
-                            num_2 = Some(*value);
-                            str.clear();
-                        }
-                    }
-                }
-            }
-        }
         line_value += (num_1.expect("num_1 is empty") * 10) as u16;
         line_value += num_2.expect("num_2 is empty") as u16;
         println!("{} {}", line, line_value);
         total += line_value;
-        num_1 = None;
-        num_2 = None;
     }
     println!("{}", total);
     Ok(())
+}
+
+fn find_first_num(line: &String, map: &HashMap<&str, u8>) -> Option<u8> {
+    let mut str = String::new();
+    for byte in line.bytes() {
+        if is_num(byte) {
+            return Some(ascii_to_int(byte).expect("not a valid digit"));
+        } else {
+            str.push(char::from_u32(byte as u32).expect("not a valid char"));
+            if str.len() >= 3 {
+                for (key, value) in map {
+                    if str.contains(key) {
+                        return Some(*value);
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 fn is_num(byte: u8) -> bool {
