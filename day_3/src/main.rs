@@ -5,6 +5,7 @@ use std::io::{BufRead, BufReader};
 struct PartNumber {
     number: u32,
     index: usize,
+    len: usize,
 }
 
 fn main() -> std::io::Result<()> {
@@ -12,6 +13,7 @@ fn main() -> std::io::Result<()> {
     // line: symbols[] - index
     // for each line get symbols for prevline, current, next
     // for each number in line check if symbols are adjacent
+    let mut part_sum = 0;
     let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
     // init stack of size 3
@@ -19,26 +21,27 @@ fn main() -> std::io::Result<()> {
     symbol_stack.push_back(Vec::new());
     symbol_stack.push_back(Vec::new());
     symbol_stack.push_back(Vec::new());
-    let mut last_numbers: Vec<PartNumber> = Vec::new();
+    let mut previous_parts: Vec<PartNumber> = Vec::new();
     for line_result in reader.lines() {
         let line = line_result?;
         let mut symbols = Vec::new();
         let mut digits = String::new();
-        let mut digit_start = 0;
-        let mut current_numbers: Vec<PartNumber> = Vec::new();
+        let mut digit_start = None;
+        let mut current_parts: Vec<PartNumber> = Vec::new();
         for (i, char) in line.chars().enumerate() {
             if char.is_digit(10) {
-                if digit_start == 0 {
-                    digit_start = i;
+                if digit_start.is_none() {
+                    digit_start = Some(i);
                 }
                 digits.push(char);
             } else {
                 if digits.len() != 0 {
-                    current_numbers.push(PartNumber {
+                    current_parts.push(PartNumber {
                         number: digits.parse::<u32>().expect("Not a number"),
-                        index: digit_start,
+                        index: digit_start.expect("Invalid index"),
+                        len: digits.len(),
                     });
-                    digit_start = 0;
+                    digit_start = None;
                     digits.clear();
                 }
                 if char != '.' {
@@ -47,53 +50,87 @@ fn main() -> std::io::Result<()> {
             }
         }
         if digits.len() != 0 {
-            current_numbers.push(PartNumber {
+            current_parts.push(PartNumber {
                 number: digits.parse::<u32>().expect("Not a number"),
-                index: digit_start,
+                index: digit_start.expect("Invalid index"),
+                len: digits.len(),
             });
         }
-        // check current numbers
-
-        //update stack
+        // update stack
         symbol_stack.pop_front();
         symbol_stack.push_back(symbols.clone());
-        let mut current_symbols: HashSet<usize> = HashSet::new();
-        for vec in &symbol_stack {
-            for index in vec {
-                current_symbols.insert(*index);
+        let current_symbols: HashSet<usize> = get_current_symbols(&symbol_stack);
+        // Check last numbers
+        if previous_parts.len() != 0 && current_symbols.len() != 0 {
+            for part in &previous_parts {
+                if check_part(part, &current_symbols) {
+                    part_sum += part.number;
+                }
             }
         }
-        if last_numbers.len() != 0 {
-            print!("Numbers to check: ");
-            for part in last_numbers {
-                print!("{}:{} ", part.index, part.number);
-            }
-        }
-        print!("\nCurrent symbols ");
-        for i in symbols {
-            print!("{} ", i);
-        }
-        print!("\nIn stack: ");
-        if current_symbols.len() == 0 {
-            print!("empty");
-        } else {
-            for i in current_symbols {
-                print!("{} ", i);
-            }
-        }
-        print!("\nCurrent numbers: ");
-        for part in &current_numbers {
-            print!("{}:{} ", part.index, part.number);
-        }
-        println!("\n");
-        last_numbers = current_numbers;
+        print_line(&previous_parts, &symbol_stack);
+        previous_parts = current_parts;
     }
-    if last_numbers.len() != 0 {
-        print!("Numbers to check: ");
-        for part in last_numbers {
-            print!("{}:{} ", part.index, part.number);
+    symbol_stack.pop_front();
+    let current_symbols: HashSet<usize> = get_current_symbols(&symbol_stack);
+    // Check last numbers
+    for part in &previous_parts {
+        if check_part(part, &current_symbols) {
+            part_sum += part.number;
         }
     }
-    println!("\n");
+    print_line(&previous_parts, &symbol_stack);
+    println!("\n{}", part_sum);
     Ok(())
+}
+
+fn check_part(part: &PartNumber, symbols: &HashSet<usize>) -> bool {
+    let mut start = 0;
+    let mut end = 0;
+    if part.index != 0 {
+        start = part.index - 1;
+        end += 1;
+    }
+    end += start + part.len;
+    while start <= end {
+        if symbols.contains(&start) {
+            return true;
+        }
+        start += 1;
+    }
+    //for &index in symbols {
+    //    if index >= start && index <= end {
+    //        return true;
+    //    }
+    //}
+    return false;
+}
+
+fn get_current_symbols(symbol_stack: &VecDeque<Vec<usize>>) -> HashSet<usize> {
+    let mut symbols = HashSet::new();
+    for vec in symbol_stack {
+        for index in vec {
+            symbols.insert(*index);
+        }
+    }
+    symbols
+}
+
+fn print_line(previous_parts: &Vec<PartNumber>, symbol_stack: &VecDeque<Vec<usize>>) {
+    let mut line: Vec<char> = vec!['.'; 140];
+    for part in previous_parts {
+        let success = check_part(part, &get_current_symbols(symbol_stack));
+        for i in part.index..(part.index + part.len) {
+            if success {
+                line[i] = 'V';
+            } else {
+                line[i] = 'X';
+            }
+        }
+    }
+    for &i in &symbol_stack[1] {
+        line[i] = '*';
+    }
+    let line_string: String = line.iter().collect();
+    println!("{}", line_string);
 }
