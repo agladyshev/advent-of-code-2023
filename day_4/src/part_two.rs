@@ -1,25 +1,51 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-pub fn part_two() -> std::io::Result<u32> {
-    let mut sum = 0;
+pub fn part_two() -> std::io::Result<usize> {
+    let mut i: usize = 0;
     let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
-    for line_result in reader.lines() {
-        let line = line_result?;
-        let matches = get_matches(&line);
-        if matches.is_some() {
-            sum += matches.unwrap();
-            //println!("{}", value.unwrap());
+    let mut cards_to_read: Vec<usize> = Vec::new();
+    let mut card_matches: HashMap<usize, usize> = HashMap::new();
+    for (n, line_result) in reader.lines().enumerate() {
+        cards_to_read.push(n);
+        for card in &cards_to_read {
+            //print!("{} ", card);
+        }
+        //println!("Cards to read {}", cards_to_read.len());
+        match line_result {
+            Ok(line) => {
+                while i < cards_to_read.len() && cards_to_read[i] <= n {
+                    //println!("i = {}, card num {}", i, cards_to_read[i]);
+                    let card = cards_to_read[i];
+                    let matches: usize;
+                    if card_matches.contains_key(&card) {
+                        matches = *card_matches.get(&card).unwrap();
+                    } else {
+                        matches = get_matches(&line);
+                        card_matches.insert(card, matches);
+                    }
+                    //println!("Matches: {}", matches);
+                    if matches != 0 {
+                        for j in 0..matches {
+                            //println!("Add card {}", card + j + 1);
+                            cards_to_read.push(card + j + 1);
+                        }
+                    }
+                    i += 1;
+                }
+            }
+            Err(e) => {
+                return Err(e);
+            }
         }
     }
-
-    return Ok(sum);
+    return Ok(cards_to_read.len());
 }
 
-fn get_matches(line: &String) -> Option<u32> {
-    let mut value: Option<u32> = None;
+fn get_matches(line: &String) -> usize {
+    let mut value = 0;
     let bytes = line.as_bytes();
     let mut winning_numbers: HashSet<u32> = HashSet::new();
     let mut i = 0;
@@ -33,7 +59,6 @@ fn get_matches(line: &String) -> Option<u32> {
             number = number * 10 + (byte - b'0') as u32;
         } else {
             if number != 0 {
-                //print!("{} ", number);
                 winning_numbers.insert(number);
                 number = 0;
             }
@@ -42,18 +67,12 @@ fn get_matches(line: &String) -> Option<u32> {
     }
     while i < bytes.len() {
         let byte = bytes[i];
-        //print!("{} ", byte as char);
         if byte >= b'0' && byte <= b'9' {
             number = number * 10 + (byte - b'0') as u32;
         } else {
             if number != 0 {
-                //print!("{} ", number);
                 if winning_numbers.contains(&number) {
-                    if value.is_none() {
-                        value = Some(1);
-                    } else {
-                        value = Some(value.unwrap() * 2);
-                    }
+                    value += 1;
                 }
                 number = 0;
             }
@@ -61,13 +80,8 @@ fn get_matches(line: &String) -> Option<u32> {
         i += 1;
     }
     if number != 0 {
-        //print!("{} ", number);
         if winning_numbers.contains(&number) {
-            if value.is_none() {
-                value = Some(1);
-            } else {
-                value = Some(value.unwrap() * 2);
-            }
+            value += 1;
         }
     }
     return value;
