@@ -50,7 +50,7 @@ impl Card {
             Card::Ace => 13,
             Card::King => 12,
             Card::Queen => 11,
-            Card::Jack => 10,
+            Card::Jack => 0,
             Card::Ten => 9,
             Card::Nine => 8,
             Card::Eight => 7,
@@ -113,9 +113,15 @@ fn get_hand_type(cards: &str) -> HandType {
     for card in cards.chars() {
         *card_freq.entry(card).or_insert(0) += 1;
     }
+    let mut bonus = 0;
+    if card_freq.contains_key(&'J') {
+        bonus = *card_freq.get(&'J').unwrap();
+        card_freq.insert('J', 0);
+    }
     let mut freq: Vec<&u8> = card_freq.values().collect();
     freq.sort_by(|a, b| b.cmp(a));
-    match *freq[0] {
+    //*freq[0] += bonus;
+    match *freq[0] + bonus {
         5 => return HandType::FiveOfAKind,
         4 => return HandType::FourOfAKind,
         3 => {
@@ -136,7 +142,7 @@ fn get_hand_type(cards: &str) -> HandType {
     }
 }
 
-pub fn part_one() -> Result<usize, std::io::Error> {
+pub fn part_two() -> Result<usize, std::io::Error> {
     let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
     let mut hands: Vec<Hand> = Vec::new();
