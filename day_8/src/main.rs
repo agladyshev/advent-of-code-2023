@@ -1,7 +1,7 @@
 mod part_one;
-//mod part_two;
+mod part_two;
 use part_one::part_one;
-//use part_two::part_two;
+use part_two::part_two;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -41,6 +41,7 @@ fn main() -> std::io::Result<()> {
     //for entry in map.values() {
     // println!("{:?}", entry);
     //}
-    println!("Result 1: {}", part_one(&actions, &map)?);
+    //println!("Result 1: {}", part_one(&actions, &map)?);
+    println!("Result 2: {}", part_two(&actions, &map)?);
     Ok(())
 }
