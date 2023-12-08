@@ -7,10 +7,10 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 fn main() -> std::io::Result<()> {
-    let file = File::open("test.txt")?;
+    let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
-    let mut map: HashMap<String, (String, String)> = HashMap::new();
     // let 1 == R, 0 == L
+    let mut map: HashMap<String, (String, String)> = HashMap::new();
     let mut actions: Vec<bool> = Vec::new();
     for (n, line_result) in reader.lines().enumerate() {
         let line = line_result?;
@@ -37,8 +37,10 @@ fn main() -> std::io::Result<()> {
             map.insert(key.to_string(), options);
         }
     }
-    println!("{:?}", actions);
-    println!("{:?}", map);
-    //println!("Result 1: {}", part_one()?);
+    //println!("{:?}", actions);
+    //for entry in map.values() {
+    // println!("{:?}", entry);
+    //}
+    println!("Result 1: {}", part_one(&actions, &map)?);
     Ok(())
 }
