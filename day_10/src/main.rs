@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -30,13 +31,36 @@ fn main() -> std::io::Result<()> {
         }
         game_map.push(chars);
     }
-    let pipe_loop: Option<Vec<(usize, usize)>> =
-        find_loop(animal_location.expect("No animal found"), &game_map);
+    let pipe_loop: Vec<(usize, usize)> =
+        find_loop(animal_location.expect("No animal found"), &game_map).unwrap();
+    //println!("{:?}", pipe_loop);
     println!(
-        "Max distance: {}",
-        pipe_loop.expect("No loop found").len() / 2
+        "First: {:?}, Last: {:?}",
+        pipe_loop.first().unwrap(),
+        pipe_loop.last().unwrap()
     );
+    println!("Max distance: {}", &pipe_loop.len() / 2);
+    //let mut loop_hashset = HashSet::new();
+    //for e in pipe_loop {
+    //    loop_hashset.insert(e);
+    //}
+    //let mut enclosed_tiles = 0;
+
+    let area = calculate_area(&pipe_loop);
+    let enclosed = (area + 1.0) - (pipe_loop.len() as f64) / 2.0;
+    println!("{}", enclosed);
     Ok(())
+}
+
+fn calculate_area(points: &Vec<(usize, usize)>) -> f64 {
+    let mut area: f64 = 0.0;
+    let length = points.len();
+    for i in 0..points.len() {
+        let next = (i + 1) % length;
+        area += (points[i].0 as f64) * (points[next].1 as f64);
+        area -= (points[i].1 as f64) * (points[next].0 as f64);
+    }
+    (area as f64).abs() / 2.0
 }
 
 fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<(usize, usize)>> {
@@ -46,7 +70,7 @@ fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<
     if location.0 > 0 {
         let west_tile = game_map[location.1][location.0 - 1];
         if WEST_VALID.contains(&west_tile) {
-            //println!("West: {west_tile}");
+            println!("West: {west_tile}");
             return Some(traverse(
                 (location.0 - 1, location.1),
                 Direction::West,
@@ -57,7 +81,7 @@ fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<
     if location.0 < x_len {
         let east_tile = game_map[location.1][location.0 + 1];
         if EAST_VALID.contains(&east_tile) {
-            //println!("East: {east_tile}");
+            println!("East: {east_tile}");
             return Some(traverse(
                 (location.0 + 1, location.1),
                 Direction::East,
@@ -68,7 +92,7 @@ fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<
     if location.1 > 0 {
         let north_tile = game_map[location.1 - 1][location.0];
         if NORTH_VALID.contains(&north_tile) {
-            //println!("North: {north_tile}");
+            println!("North: {north_tile}");
             return Some(traverse(
                 (location.0, location.1 - 1),
                 Direction::North,
@@ -79,7 +103,7 @@ fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<
     if location.1 < y_len {
         let south_tile = game_map[location.1 + 1][location.0];
         if SOUTH_VALID.contains(&south_tile) {
-            //println!("South: {south_tile}");
+            println!("South: {south_tile}");
             return Some(traverse(
                 (location.0, location.1 + 1),
                 Direction::South,
