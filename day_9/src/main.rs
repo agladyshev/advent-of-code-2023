@@ -14,18 +14,31 @@ fn main() -> std::io::Result<()> {
         }
         histories.push(seq);
     }
-    //println!("{:?}", histories);
-    let mut result: isize = 0;
-    for seq in histories {
-        let next = seq.last().expect("Not empty") + get_extrapolate(&seq);
-        println!("{next}");
-        result += next;
-    }
-    println!("{result}");
+    println!("Part one: {}", part_one(&histories));
+    println!("Part two: {}", part_two(&histories));
     Ok(())
 }
 
-fn get_extrapolate(seq: &Vec<isize>) -> isize {
+fn part_one(histories: &Vec<Vec<isize>>) -> isize {
+    let mut result: isize = 0;
+    for seq in histories {
+        let next = seq.last().expect("Not empty") + extrapolate_forward(&seq);
+        result += next;
+    }
+    return result;
+}
+
+fn part_two(histories: &Vec<Vec<isize>>) -> isize {
+    let mut result: isize = 0;
+    for seq in histories {
+        let reversed: Vec<isize> = seq.iter().rev().cloned().collect();
+        let next = reversed.last().expect("Not empty") + extrapolate_forward(&reversed);
+        result += next;
+    }
+    return result;
+}
+
+fn extrapolate_forward(seq: &Vec<isize>) -> isize {
     let mut diff_seq: Vec<isize> = Vec::new();
     let mut is_last = true;
     for i in 1..seq.len() {
@@ -36,7 +49,7 @@ fn get_extrapolate(seq: &Vec<isize>) -> isize {
         diff_seq.push(diff);
     }
     if !is_last {
-        let next_diff = get_extrapolate(&diff_seq);
+        let next_diff = extrapolate_forward(&diff_seq);
         return *diff_seq.last().expect("diff not empty") + next_diff;
     } else {
         return *diff_seq.last().expect("diff not empty");
