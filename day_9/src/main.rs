@@ -14,6 +14,31 @@ fn main() -> std::io::Result<()> {
         }
         histories.push(seq);
     }
-    println!("{:?}", histories);
+    //println!("{:?}", histories);
+    let mut result: isize = 0;
+    for seq in histories {
+        let next = seq.last().expect("Not empty") + get_extrapolate(&seq);
+        println!("{next}");
+        result += next;
+    }
+    println!("{result}");
     Ok(())
+}
+
+fn get_extrapolate(seq: &Vec<isize>) -> isize {
+    let mut diff_seq: Vec<isize> = Vec::new();
+    let mut is_last = true;
+    for i in 1..seq.len() {
+        let diff = seq[i] - seq[i - 1];
+        if diff != 0 {
+            is_last = false;
+        }
+        diff_seq.push(diff);
+    }
+    if !is_last {
+        let next_diff = get_extrapolate(&diff_seq);
+        return *diff_seq.last().expect("diff not empty") + next_diff;
+    } else {
+        return *diff_seq.last().expect("diff not empty");
+    }
 }
