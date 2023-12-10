@@ -19,13 +19,8 @@ fn main() -> std::io::Result<()> {
     let reader = BufReader::new(file);
     let mut game_map: Vec<Vec<char>> = Vec::new();
     let mut animal_location: Option<(usize, usize)> = None;
-    let mut x_len = 0;
-    let mut y_len = 0;
     for (y, line_result) in reader.lines().enumerate() {
         let line = line_result?;
-        if y == 0 {
-            x_len = line.len();
-        }
         let mut chars: Vec<char> = Vec::new();
         for (x, tile) in line.chars().enumerate() {
             if tile == 'S' {
@@ -35,69 +30,87 @@ fn main() -> std::io::Result<()> {
         }
         game_map.push(chars);
     }
-    y_len = game_map.len();
-    match animal_location {
-        Some(location) => {
-            println!("Animal location, x: {}, y: {}", location.0, location.1);
-            if location.0 > 0 {
-                let west_tile = game_map[location.1][location.0 - 1];
-                if WEST_VALID.contains(&west_tile) {
-                    println!("West: {west_tile}");
-                    traverse((location.0 - 1, location.1), Direction::West, &game_map);
-                    return Ok(());
-                }
-            }
-            if location.0 < x_len {
-                let east_tile = game_map[location.1][location.0 + 1];
-                if EAST_VALID.contains(&east_tile) {
-                    println!("East: {east_tile}");
-                    traverse((location.0 + 1, location.1), Direction::East, &game_map);
-                    return Ok(());
-                }
-            }
-            if location.1 > 0 {
-                let north_tile = game_map[location.1 - 1][location.0];
-                if NORTH_VALID.contains(&north_tile) {
-                    println!("North: {north_tile}");
-                    traverse((location.0, location.1 - 1), Direction::North, &game_map);
-                    return Ok(());
-                }
-            }
-            if location.1 < y_len {
-                let south_tile = game_map[location.1 + 1][location.0];
-                if SOUTH_VALID.contains(&south_tile) {
-                    println!("South: {south_tile}");
-                    traverse((location.0, location.1 + 1), Direction::South, &game_map);
-                    return Ok(());
-                }
-            }
-        }
-        None => {}
-    }
+    let pipe_loop: Option<Vec<(usize, usize)>> =
+        find_loop(animal_location.expect("No animal found"), &game_map);
+    println!(
+        "Max distance: {}",
+        pipe_loop.expect("No loop found").len() / 2
+    );
     Ok(())
 }
 
-fn traverse(location: (usize, usize), direction: Direction, map: &Vec<Vec<char>>) -> usize {
+fn find_loop(location: (usize, usize), game_map: &Vec<Vec<char>>) -> Option<Vec<(usize, usize)>> {
+    let y_len = game_map.len();
+    let x_len = game_map[0].len();
+    //println!("Animal location, x: {}, y: {}", location.0, location.1);
+    if location.0 > 0 {
+        let west_tile = game_map[location.1][location.0 - 1];
+        if WEST_VALID.contains(&west_tile) {
+            //println!("West: {west_tile}");
+            return Some(traverse(
+                (location.0 - 1, location.1),
+                Direction::West,
+                &game_map,
+            ));
+        }
+    }
+    if location.0 < x_len {
+        let east_tile = game_map[location.1][location.0 + 1];
+        if EAST_VALID.contains(&east_tile) {
+            //println!("East: {east_tile}");
+            return Some(traverse(
+                (location.0 + 1, location.1),
+                Direction::East,
+                &game_map,
+            ));
+        }
+    }
+    if location.1 > 0 {
+        let north_tile = game_map[location.1 - 1][location.0];
+        if NORTH_VALID.contains(&north_tile) {
+            //println!("North: {north_tile}");
+            return Some(traverse(
+                (location.0, location.1 - 1),
+                Direction::North,
+                &game_map,
+            ));
+        }
+    }
+    if location.1 < y_len {
+        let south_tile = game_map[location.1 + 1][location.0];
+        if SOUTH_VALID.contains(&south_tile) {
+            //println!("South: {south_tile}");
+            return Some(traverse(
+                (location.0, location.1 + 1),
+                Direction::South,
+                &game_map,
+            ));
+        }
+    }
+    None
+}
+
+fn traverse(
+    location: (usize, usize),
+    direction: Direction,
+    map: &Vec<Vec<char>>,
+) -> Vec<(usize, usize)> {
     let mut next_position = (location, direction);
-    let mut steps = 1;
+    let mut pipe_loop: Vec<(usize, usize)> = Vec::new();
+    pipe_loop.push(location);
     loop {
         let current_location = next_position.0;
         let tile = map[current_location.1][current_location.0];
         next_position = go(current_location, tile, next_position.1);
-        println!("{:?}", next_position);
-        steps += 1;
+        //println!("{:?}", next_position);
         let x = next_position.0 .0;
         let y = next_position.0 .1;
+        pipe_loop.push(next_position.0);
         if map[y][x] == 'S' {
             break;
         }
-        if steps > 100 {
-            // break;
-        }
     }
-    let distance = steps / 2;
-    println!("Longest from start: {distance}");
-    return distance;
+    return pipe_loop;
 }
 
 fn go(
@@ -105,7 +118,7 @@ fn go(
     pipe_type: char,
     direction: Direction,
 ) -> ((usize, usize), Direction) {
-    println!("Symbol: {pipe_type}");
+    //println!("Symbol: {pipe_type}");
     //println!("Direction: {:?}", direction);
     match pipe_type {
         '|' => {
