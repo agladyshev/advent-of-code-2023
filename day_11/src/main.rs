@@ -7,65 +7,24 @@ struct Galaxy {
     y: usize,
 }
 
+struct GameMap {
+    map: Vec<Vec<bool>>,
+    empty_x: Vec<bool>,
+    empty_y: Vec<bool>,
+}
+
 fn main() -> std::io::Result<()> {
     let file = File::open("input.txt")?;
-    let reader = BufReader::new(file);
-    let mut map: Vec<Vec<bool>> = Vec::new();
-    let mut empty_x: Vec<bool> = Vec::new();
-    let mut empty_y: Vec<bool> = Vec::new();
-    for line_result in reader.lines() {
-        let line = line_result?;
-        if empty_x.is_empty() {
-            for _i in 0..line.len() {
-                empty_x.push(true);
-            }
-        }
-        let mut row = Vec::new();
-        let mut is_row_empty = true;
-        for (x, char) in line.chars().enumerate() {
-            let is_galaxy = char == '#';
-            if is_galaxy {
-                empty_x[x] = false;
-                is_row_empty = false;
-            }
-            row.push(is_galaxy);
-        }
-        if is_row_empty {
-            empty_y.push(true);
-        } else {
-            empty_y.push(false);
-        }
-        map.push(row);
-    }
-    let mut x_additional_space: Vec<usize> = Vec::new();
-    let mut y_additional_space: Vec<usize> = Vec::new();
-    {
-        let mut modifier = 0;
-        for value in &empty_x {
-            x_additional_space.push(modifier);
-            if *value == true {
-                modifier += 999999;
-            }
-        }
-    }
-    {
-        let mut modifier = 0;
-        for value in &empty_y {
-            y_additional_space.push(modifier);
-            if *value == true {
-                modifier += 999999;
-            }
-        }
-    }
-    println!("Empty x: {:?}", &empty_x);
-    println!("Empty y: {:?}", &empty_y);
+    let game_map = parse_map(&file).expect("Bad map");
+    let x_additional_space: Vec<usize> = calc_modifier(&game_map.empty_x);
+    let y_additional_space: Vec<usize> = calc_modifier(&game_map.empty_y);
     println!("Empty x: {:?}", &x_additional_space);
     println!("Empty y: {:?}", &y_additional_space);
     let mut y = 0;
     let mut galaxies: Vec<Galaxy> = Vec::new();
     let mut sum = 0;
     let mut pairs = 0;
-    for row in map {
+    for row in game_map.map {
         let mut x = 0;
         for value in row {
             if value == true {
@@ -85,16 +44,57 @@ fn main() -> std::io::Result<()> {
         }
         y += 1;
     }
-    //println!("{:?}", galaxies);
-    //println!("{}", galaxies.len());
-    println!("Sum: {sum}");
     println!("Pairs: {pairs}");
+    println!("Sum: {sum}");
     Ok(())
 }
 
 fn get_distance(a: &Galaxy, b: &Galaxy) -> usize {
-    //println!("a: {:?}, b: {:?}", a, b);
     let x_mod = if b.x > a.x { b.x - a.x } else { a.x - b.x };
     let y_mod = if b.y > a.y { b.y - a.y } else { a.y - b.y };
     return x_mod + y_mod;
+}
+
+fn calc_modifier(empty_coordinates: &Vec<bool>) -> Vec<usize> {
+    let mut additional_space: Vec<usize> = Vec::new();
+    let mut modifier = 0;
+    for value in empty_coordinates {
+        additional_space.push(modifier);
+        if *value == true {
+            modifier += 999999;
+        }
+    }
+    return additional_space;
+}
+
+fn parse_map(file: &File) -> Option<GameMap> {
+    let mut map: Vec<Vec<bool>> = Vec::new();
+    let mut empty_x: Vec<bool> = Vec::new();
+    let mut empty_y: Vec<bool> = Vec::new();
+    let reader = BufReader::new(file);
+    for line_result in reader.lines() {
+        let line = line_result.expect("Bad line");
+        if empty_x.is_empty() {
+            for _i in 0..line.len() {
+                empty_x.push(true);
+            }
+        }
+        let mut row = Vec::new();
+        let mut is_row_empty = true;
+        for (x, char) in line.chars().enumerate() {
+            let is_galaxy = char == '#';
+            if is_galaxy {
+                empty_x[x] = false;
+                is_row_empty = false;
+            }
+            row.push(is_galaxy);
+        }
+        empty_y.push(is_row_empty);
+        map.push(row);
+    }
+    return Some(GameMap {
+        map,
+        empty_x,
+        empty_y,
+    });
 }
