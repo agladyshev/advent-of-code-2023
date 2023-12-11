@@ -12,6 +12,7 @@ fn main() -> std::io::Result<()> {
     let reader = BufReader::new(file);
     let mut map: Vec<Vec<bool>> = Vec::new();
     let mut empty_x: Vec<bool> = Vec::new();
+    let mut empty_y: Vec<bool> = Vec::new();
     for line_result in reader.lines() {
         let line = line_result?;
         if empty_x.is_empty() {
@@ -30,20 +31,36 @@ fn main() -> std::io::Result<()> {
             row.push(is_galaxy);
         }
         if is_row_empty {
-            map.push(row.clone());
+            empty_y.push(true);
+        } else {
+            empty_y.push(false);
         }
         map.push(row);
     }
     let mut x_additional_space: Vec<usize> = Vec::new();
-    let mut modifier = 0;
-    for value in &empty_x {
-        x_additional_space.push(modifier);
-        if *value == true {
-            modifier += 1;
+    let mut y_additional_space: Vec<usize> = Vec::new();
+    {
+        let mut modifier = 0;
+        for value in &empty_x {
+            x_additional_space.push(modifier);
+            if *value == true {
+                modifier += 999999;
+            }
+        }
+    }
+    {
+        let mut modifier = 0;
+        for value in &empty_y {
+            y_additional_space.push(modifier);
+            if *value == true {
+                modifier += 999999;
+            }
         }
     }
     println!("Empty x: {:?}", &empty_x);
+    println!("Empty y: {:?}", &empty_y);
     println!("Empty x: {:?}", &x_additional_space);
+    println!("Empty y: {:?}", &y_additional_space);
     let mut y = 0;
     let mut galaxies: Vec<Galaxy> = Vec::new();
     let mut sum = 0;
@@ -54,7 +71,7 @@ fn main() -> std::io::Result<()> {
             if value == true {
                 let galaxy = Galaxy {
                     x: x + x_additional_space[x],
-                    y,
+                    y: y + y_additional_space[y],
                 };
                 for prev in &galaxies {
                     let distance = get_distance(&prev, &galaxy);
@@ -69,7 +86,7 @@ fn main() -> std::io::Result<()> {
         y += 1;
     }
     //println!("{:?}", galaxies);
-    println!("{}", galaxies.len());
+    //println!("{}", galaxies.len());
     println!("Sum: {sum}");
     println!("Pairs: {pairs}");
     Ok(())
