@@ -15,13 +15,34 @@ fn main() -> std::io::Result<()> {
             .split(",")
             .filter_map(|str| str.parse::<usize>().ok())
             .collect();
-        //println!("{:?}", springs);
-        //println!("{:?}", numbers);
-        let len = springs.len();
-        let count: usize = get_combinations_count(springs, &numbers, 0, len, Vec::new(), 0);
-        //println!("Line combinations: {count}");
+        let mut multiplied_springs: Vec<char> = Vec::new();
+        let multiplied_numbers: Vec<usize> = numbers
+            .iter()
+            .cycle()
+            .take(numbers.len() * 5)
+            .cloned()
+            .collect();
+        for i in 0..5 {
+            for char in &springs {
+                multiplied_springs.push(*char);
+            }
+            if i != 4 {
+                multiplied_springs.push('?');
+            }
+        }
+        //println!("{:?}", multiplied_springs);
+        //println!("{:?}", multiplied_numbers);
+        let len = multiplied_springs.len();
+        let count: usize = get_combinations_count(
+            multiplied_springs,
+            &multiplied_numbers,
+            0,
+            len,
+            Vec::new(),
+            0,
+        );
+        println!("Line combinations: {count}");
         sum += count;
-        //break;
     }
     println!("Sum of combinations: {sum}");
     Ok(())
