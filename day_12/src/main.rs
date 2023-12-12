@@ -1,10 +1,13 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 fn main() -> std::io::Result<()> {
     let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
-    let mut sum: usize = 0;
+    let mut sum_pt_1: usize = 0;
+    let mut sum_pt_2: usize = 0;
+    let mut cache = HashMap::new();
     for line_result in reader.lines() {
         let line = line_result.expect("Bad line");
         let mut line_parts = line.split(" ");
@@ -30,139 +33,97 @@ fn main() -> std::io::Result<()> {
                 multiplied_springs.push('?');
             }
         }
-        //println!("{:?}", multiplied_springs);
-        //println!("{:?}", multiplied_numbers);
-        let len = multiplied_springs.len();
-        let count: usize = get_combinations_count(
-            multiplied_springs,
-            &multiplied_numbers,
-            0,
-            len,
-            Vec::new(),
-            0,
-        );
-        println!("Line combinations: {count}");
-        sum += count;
+        cache.clear();
+        let count_pt_1: usize = combinations(&mut cache, &springs, None, &numbers);
+        cache.clear();
+        let count_pt_2: usize =
+            combinations(&mut cache, &multiplied_springs, None, &multiplied_numbers);
+        sum_pt_1 += count_pt_1;
+        sum_pt_2 += count_pt_2;
     }
-    println!("Sum of combinations: {sum}");
+    println!("Sum of combinations, part 1: {sum_pt_1}");
+    println!("Sum of combinations, part 2: {sum_pt_2}");
     Ok(())
 }
 
-fn get_combinations_count(
-    chars: Vec<char>,
-    pattern: &Vec<usize>,
-    start: usize,
-    len: usize,
-    arrangement: Vec<usize>,
-    count: usize,
+fn combinations(
+    cache: &mut HashMap<(usize, usize, usize), usize>,
+    substring: &[char],
+    stash: Option<usize>,
+    patterns: &[usize],
 ) -> usize {
-    let mut base_arrangement = arrangement.clone();
-    let mut base_count = count;
-    for i in start..len {
-        //println!("{i} of {len}");
-        if chars[i] == '?' {
-            let mut option_one = chars.clone();
-            option_one[i] = '#';
-            let mut option_two = chars.clone();
-            option_two[i] = '.';
-            let mut arrangement_two = base_arrangement.clone();
-            if base_count != 0 {
-                arrangement_two.push(base_count);
-            }
-            let is_one_valid_path = pre_check_arrangement(&base_arrangement, &pattern);
-            let is_two_valid_path = pre_check_arrangement(&arrangement_two, &pattern);
-            let mut sum = 0;
-            if is_one_valid_path {
-                sum += get_combinations_count(
-                    option_one,
-                    pattern,
-                    i + 1,
-                    len,
-                    base_arrangement,
-                    base_count + 1,
-                )
-            }
-            if is_two_valid_path {
-                sum += get_combinations_count(option_two, pattern, i + 1, len, arrangement_two, 0);
-            }
-            return sum;
-        } else {
-            if chars[i] == '#' {
-                base_count += 1;
-            } else {
-                if base_count != 0 {
-                    base_arrangement.push(base_count);
-                }
-                base_count = 0;
-            }
-        }
+    // This is a dumbified version of a solution below:
+    // // https://github.com/AxlLind/AdventOfCode2023/blob/main/src/bin/12.rs
+    // patterns is stretches of ### to check
+    // stash is the number of #
+    if substring.is_empty() {
+        return match (stash, patterns.len()) {
+            //  succesfully traversed the entire string
+            // stash is empty (previous char was .)
+            (None, 0) => 1,
+            // stash is not empty, check if it matches current pattern
+            (Some(x), 1) if x == patterns[0] => 1,
+            // else invalid combination
+            _ => 0,
+        };
     }
-    //println!("{:?}", chars);
-    if base_count != 0 {
-        base_arrangement.push(base_count);
-    }
-    //check_pattern(&chars, pattern);
-    //if check_pattern(&chars, pattern) {
-    if check_arrangement(&base_arrangement, pattern) {
-        return 1;
-    } else {
+    if stash.is_some() && patterns.is_empty() {
         return 0;
     }
-}
 
-fn pre_check_arrangement(arrangement: &Vec<usize>, pattern: &Vec<usize>) -> bool {
-    let length = arrangement.len();
-    let pattern_len = pattern.len();
-    if pattern_len < length {
-        return false;
-    }
-    for i in 0..length {
-        if i == (length - 1) {
-            return arrangement[i] <= pattern[i];
-        } else if arrangement[i] != pattern[i] {
-            return false;
-        }
-    }
-    return true;
-}
+    let key = (substring.len(), stash.unwrap_or(0), patterns.len());
+    // 19, 1, 4 - so key is a point in execution
+    // if we start from this point we always get the same result
+    // because it is for the same string
 
-fn check_arrangement(arrangement: &Vec<usize>, pattern: &Vec<usize>) -> bool {
-    //println!("New: {:?}", arrangement);
-    if arrangement.len() == pattern.len() {
-        for i in 0..arrangement.len() {
-            if arrangement[i] != pattern[i] {
-                return false;
+    if let Some(&cached_value) = cache.get(&key) {
+        return cached_value;
+    }
+
+    let ways = match (substring[0], stash) {
+        ('.', Some(x)) => {
+            // We have some ### in stash, but find .
+            if x != patterns[0] {
+                // if number of ### does not equal the pattern, there is no match
+                return 0;
+            } else {
+                // continue to the next part of the pattern with empty stash, continue to next char
+                return combinations(cache, &substring[1..], None, &patterns[1..]);
             }
         }
-        return true;
-    }
-    return false;
-}
-
-fn check_pattern(chars: &Vec<char>, pattern: &Vec<usize>) -> bool {
-    let mut arrangement: Vec<usize> = Vec::new();
-    let mut count = 0;
-    for char in chars {
-        if *char == '#' {
-            count += 1;
-        } else {
-            if count != 0 {
-                arrangement.push(count);
-            }
-            count = 0;
+        ('.', None) => {
+            // if . but stash is empty, basically skip character
+            return combinations(cache, &substring[1..], None, patterns);
         }
-    }
-    if count != 0 {
-        arrangement.push(count);
-    }
-    println!("Old {:?}", arrangement);
-    if arrangement.len() == pattern.len() {
-        for i in 0..arrangement.len() {
-            if arrangement[i] != pattern[i] {
-                return false;
+        ('#', Some(_)) => {
+            // Found #, increase stash, next char
+            return combinations(cache, &substring[1..], stash.map(|x| x + 1), patterns);
+        }
+        ('#', None) => {
+            // Found #, create stash with one #, go to next character
+            return combinations(cache, &substring[1..], Some(1), patterns);
+        }
+        ('?', Some(x)) => {
+            // Branching out
+            // If char is #, increase stash and get options for this branch
+            let branch_hash = combinations(cache, &substring[1..], stash.map(|x| x + 1), patterns);
+            // If char i ., check stash against the pattern, if matches, calculate this branch
+            if x == patterns[0] {
+                // empty stash, get next pattern
+                let branch_dot = combinations(cache, &substring[1..], None, &patterns[1..]);
+                branch_hash + branch_dot
+            } else {
+                branch_hash
             }
         }
-        return true;
-    }
-    return false;
+        ('?', None) => {
+            // First char is ?, nothing is determined yet, just split execution
+            // if #, increase the stash
+            return combinations(cache, &substring[1..], Some(1), patterns)
+                + combinations(cache, &substring[1..], None, patterns);
+        }
+        _ => unreachable!(),
+    };
+    cache.insert(key, ways);
+    ways
 }
