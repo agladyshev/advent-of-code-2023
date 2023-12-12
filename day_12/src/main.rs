@@ -48,16 +48,23 @@ fn get_combinations_count(
             if base_count != 0 {
                 arrangement_two.push(base_count);
             }
-            //println!("# {i}: {:?}, {}", arrangement, base_count + 1);
-            //println!(". {i}: {:?}, 0", arrangement_two);
-            return get_combinations_count(
-                option_one,
-                pattern,
-                i + 1,
-                len,
-                base_arrangement,
-                base_count + 1,
-            ) + get_combinations_count(option_two, pattern, i + 1, len, arrangement_two, 0);
+            let is_one_valid_path = pre_check_arrangement(&base_arrangement, &pattern);
+            let is_two_valid_path = pre_check_arrangement(&arrangement_two, &pattern);
+            let mut sum = 0;
+            if is_one_valid_path {
+                sum += get_combinations_count(
+                    option_one,
+                    pattern,
+                    i + 1,
+                    len,
+                    base_arrangement,
+                    base_count + 1,
+                )
+            }
+            if is_two_valid_path {
+                sum += get_combinations_count(option_two, pattern, i + 1, len, arrangement_two, 0);
+            }
+            return sum;
         } else {
             if chars[i] == '#' {
                 base_count += 1;
@@ -80,6 +87,22 @@ fn get_combinations_count(
     } else {
         return 0;
     }
+}
+
+fn pre_check_arrangement(arrangement: &Vec<usize>, pattern: &Vec<usize>) -> bool {
+    let length = arrangement.len();
+    let pattern_len = pattern.len();
+    if pattern_len < length {
+        return false;
+    }
+    for i in 0..length {
+        if i == (length - 1) {
+            return arrangement[i] <= pattern[i];
+        } else if arrangement[i] != pattern[i] {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn check_arrangement(arrangement: &Vec<usize>, pattern: &Vec<usize>) -> bool {
