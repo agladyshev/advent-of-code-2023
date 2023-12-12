@@ -17,35 +17,82 @@ fn main() -> std::io::Result<()> {
             .collect();
         //println!("{:?}", springs);
         //println!("{:?}", numbers);
-        let count: usize = get_combinations_count(springs, &numbers);
+        let len = springs.len();
+        let count: usize = get_combinations_count(springs, &numbers, 0, len, Vec::new(), 0);
         //println!("Line combinations: {count}");
         sum += count;
+        //break;
     }
     println!("Sum of combinations: {sum}");
     Ok(())
 }
 
-fn get_combinations_count(chars: Vec<char>, pattern: &Vec<usize>) -> usize {
-    let mut i: usize = 0;
-    for char in &chars {
-        if *char == '?' {
+fn get_combinations_count(
+    chars: Vec<char>,
+    pattern: &Vec<usize>,
+    start: usize,
+    len: usize,
+    arrangement: Vec<usize>,
+    count: usize,
+) -> usize {
+    let mut base_arrangement = arrangement.clone();
+    let mut base_count = count;
+    for i in start..len {
+        //println!("{i} of {len}");
+        if chars[i] == '?' {
             let mut option_one = chars.clone();
             option_one[i] = '#';
             let mut option_two = chars.clone();
             option_two[i] = '.';
-            //println!("{:?}", option_one);
-            //println!("{:?}", option_two);
-            return get_combinations_count(option_one, pattern)
-                + get_combinations_count(option_two, pattern);
+            let mut arrangement_two = base_arrangement.clone();
+            if base_count != 0 {
+                arrangement_two.push(base_count);
+            }
+            //println!("# {i}: {:?}, {}", arrangement, base_count + 1);
+            //println!(". {i}: {:?}, 0", arrangement_two);
+            return get_combinations_count(
+                option_one,
+                pattern,
+                i + 1,
+                len,
+                base_arrangement,
+                base_count + 1,
+            ) + get_combinations_count(option_two, pattern, i + 1, len, arrangement_two, 0);
+        } else {
+            if chars[i] == '#' {
+                base_count += 1;
+            } else {
+                if base_count != 0 {
+                    base_arrangement.push(base_count);
+                }
+                base_count = 0;
+            }
         }
-        i += 1;
     }
     //println!("{:?}", chars);
-    if check_pattern(&chars, pattern) {
+    if base_count != 0 {
+        base_arrangement.push(base_count);
+    }
+    //check_pattern(&chars, pattern);
+    //if check_pattern(&chars, pattern) {
+    if check_arrangement(&base_arrangement, pattern) {
         return 1;
     } else {
         return 0;
     }
+}
+
+fn check_arrangement(arrangement: &Vec<usize>, pattern: &Vec<usize>) -> bool {
+    //println!("New: {:?}", arrangement);
+    if arrangement.len() == pattern.len() {
+        for i in 0..arrangement.len() {
+            if arrangement[i] != pattern[i] {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 fn check_pattern(chars: &Vec<char>, pattern: &Vec<usize>) -> bool {
@@ -64,7 +111,7 @@ fn check_pattern(chars: &Vec<char>, pattern: &Vec<usize>) -> bool {
     if count != 0 {
         arrangement.push(count);
     }
-    //println!("{:?}", arrangement);
+    println!("Old {:?}", arrangement);
     if arrangement.len() == pattern.len() {
         for i in 0..arrangement.len() {
             if arrangement[i] != pattern[i] {
