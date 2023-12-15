@@ -12,6 +12,7 @@ fn main() -> std::io::Result<()> {
     let mut rows: Vec<String> = Vec::new();
     let mut columns: Vec<String> = Vec::new();
     let mut column_chars: Vec<Vec<char>> = Vec::new();
+    let mut cached_hashes: HashMap<String, u64> = HashMap::new();
     for (n, line_result) in reader.lines().enumerate() {
         let line = line_result.expect("Bad line");
         //println!("Line {} {}", n, &line);
@@ -35,9 +36,9 @@ fn main() -> std::io::Result<()> {
                     columns.push(str);
                 }
                 column_chars.clear();
-                let row_hashes: HashMap<usize, u64> = populate_hashmap(&rows);
-                let column_hashes: HashMap<usize, u64> = populate_hashmap(&columns);
-                result_one += get_reflections_value(&rows, &columns, &row_hashes, &column_hashes);
+                //let row_hashes: HashMap<usize, u64> = populate_hashmap(&rows);
+                //let column_hashes: HashMap<usize, u64> = populate_hashmap(&columns);
+                result_one += get_reflections_value(&rows, &columns, &mut cached_hashes);
                 //let row_pairs = find_pairs_with_single_diff(&rows);
                 //let column_pairs = find_pairs_with_single_diff(&columns);
                 //println!("Rows: {:?}", row_pairs);
@@ -62,14 +63,13 @@ fn main() -> std::io::Result<()> {
 fn get_reflections_value(
     rows: &Vec<String>,
     columns: &Vec<String>,
-    row_hashes: &HashMap<usize, u64>,
-    column_hashes: &HashMap<usize, u64>,
+    cached_hashes: &mut HashMap<String, u64>,
 ) -> usize {
-    let rows_above = get_reflected_count(rows, row_hashes);
-    let columns_left = get_reflected_count(columns, column_hashes);
+    let rows_above = get_reflected_count(rows, cached_hashes);
+    let columns_left = get_reflected_count(columns, cached_hashes);
     rows_above * 100 + columns_left
 }
-fn get_reflected_count(lines: &Vec<String>, hashes: &HashMap<usize, u64>) -> usize {
+fn get_reflected_count(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> usize {
     let mut reflections = 0;
     let len = lines.len();
     for i in 1..len {
@@ -83,8 +83,20 @@ fn get_reflected_count(lines: &Vec<String>, hashes: &HashMap<usize, u64>) -> usi
             //    "{} {}",
             //    hashes.get(&(i - j - 1)).expect("out of bounds before"),
             //    hashes.get(&(i + j)).expect("out of bound after")
-            //);
-            if hashes.get(&(i - j - 1)) != hashes.get(&(i + j)) {
+            //)
+            let left = &lines[i - j - 1];
+            let right = &lines[i + j];
+            if hashes.get(left).is_none() {
+                let hash = to_hash(&left);
+                hashes.insert(left.clone(), hash);
+                //left_value = Some(&hash);
+            }
+            if hashes.get(right).is_none() {
+                let hash = to_hash(&right);
+                hashes.insert(right.clone(), hash);
+                //right_value = Some(&hash);
+            }
+            if hashes.get(left).unwrap() != hashes.get(right).unwrap() {
                 is_mirror = false;
             }
             //if row_hashes.get[i - j] == row_hashes.get[i + j];
