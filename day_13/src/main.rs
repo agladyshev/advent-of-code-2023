@@ -52,25 +52,16 @@ fn main() -> std::io::Result<()> {
                         chars[pair.0] = chars[pair.1];
                         updated_columns[i] = chars.into_iter().collect();
                     }
-                    let mut new_row_reflections =
-                        get_reflections(&updated_rows, &mut cached_hashes);
-                    let mut new_column_reflections =
-                        get_reflections(&updated_columns, &mut cached_hashes);
-                    new_row_reflections = new_row_reflections
-                        .into_iter()
-                        .filter(|x| !old_row_reflections.contains(x))
-                        .collect::<Vec<usize>>();
-                    new_column_reflections = new_column_reflections
-                        .into_iter()
-                        .filter(|x| !old_column_reflections.contains(x))
-                        .collect::<Vec<usize>>();
-                    if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
-                        new_result = new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
-                            + new_column_reflections.iter().sum::<usize>();
-                        if new_result > 0 {
-                            result_two += new_result;
-                            break;
-                        }
+                    new_result = find_new_reflections(
+                        &updated_rows,
+                        &updated_columns,
+                        &old_row_reflections,
+                        &old_column_reflections,
+                        &mut cached_hashes,
+                    );
+                    if new_result > 0 {
+                        result_two += new_result;
+                        break;
                     }
                 }
                 if new_result == 0 {
@@ -83,26 +74,16 @@ fn main() -> std::io::Result<()> {
                             chars[pair.0] = chars[pair.1];
                             updated_rows[i] = chars.into_iter().collect();
                         }
-                        let mut new_row_reflections =
-                            get_reflections(&updated_rows, &mut cached_hashes);
-                        let mut new_column_reflections =
-                            get_reflections(&updated_columns, &mut cached_hashes);
-                        new_row_reflections = new_row_reflections
-                            .into_iter()
-                            .filter(|x| !old_row_reflections.contains(x))
-                            .collect::<Vec<usize>>();
-                        new_column_reflections = new_column_reflections
-                            .into_iter()
-                            .filter(|x| !old_column_reflections.contains(x))
-                            .collect::<Vec<usize>>();
-                        if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
-                            new_result =
-                                new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
-                                    + new_column_reflections.iter().sum::<usize>();
-                            if new_result > 0 {
-                                result_two += new_result;
-                                break;
-                            }
+                        new_result = find_new_reflections(
+                            &updated_rows,
+                            &updated_columns,
+                            &old_row_reflections,
+                            &old_column_reflections,
+                            &mut cached_hashes,
+                        );
+                        if new_result > 0 {
+                            result_two += new_result;
+                            break;
                         }
                     }
                 }
@@ -116,6 +97,30 @@ fn main() -> std::io::Result<()> {
     println!("{}", result_one);
     println!("{}", result_two);
     Ok(())
+}
+
+fn find_new_reflections(
+    updated_rows: &Vec<String>,
+    updated_columns: &Vec<String>,
+    old_row_reflections: &Vec<usize>,
+    old_column_reflections: &Vec<usize>,
+    cached_hashes: &mut HashMap<String, u64>,
+) -> usize {
+    let mut new_row_reflections = get_reflections(&updated_rows, cached_hashes);
+    let mut new_column_reflections = get_reflections(&updated_columns, cached_hashes);
+    new_row_reflections = new_row_reflections
+        .into_iter()
+        .filter(|x| !old_row_reflections.contains(x))
+        .collect::<Vec<usize>>();
+    new_column_reflections = new_column_reflections
+        .into_iter()
+        .filter(|x| !old_column_reflections.contains(x))
+        .collect::<Vec<usize>>();
+    if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
+        return new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
+            + new_column_reflections.iter().sum::<usize>();
+    }
+    0
 }
 
 fn get_reflections(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> Vec<usize> {
