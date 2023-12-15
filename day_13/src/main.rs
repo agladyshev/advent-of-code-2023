@@ -5,9 +5,10 @@ use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
 
 fn main() -> std::io::Result<()> {
-    let file = File::open("input.txt")?;
+    let file = File::open("test.txt")?;
     let reader = BufReader::new(file);
-    let mut result = 0;
+    let mut result_one = 0;
+    let mut result_two = 0;
     let mut rows: Vec<String> = Vec::new();
     let mut columns: Vec<String> = Vec::new();
     let mut column_chars: Vec<Vec<char>> = Vec::new();
@@ -36,20 +37,38 @@ fn main() -> std::io::Result<()> {
                 column_chars.clear();
                 let row_hashes: HashMap<usize, u64> = populate_hashmap(&rows);
                 let column_hashes: HashMap<usize, u64> = populate_hashmap(&columns);
-                let rows_above = get_reflected_count(&rows, &row_hashes);
-                let columns_left = get_reflected_count(&columns, &column_hashes);
-                //println!("{}", rows_above);
-                //println!("{}", columns_left);
-                result += rows_above * 100 + columns_left;
+                result_one += get_reflections_value(&rows, &columns, &row_hashes, &column_hashes);
+                //let row_pairs = find_pairs_with_single_diff(&rows);
+                //let column_pairs = find_pairs_with_single_diff(&columns);
+                //println!("Rows: {:?}", row_pairs);
+                //println!("Columns: {:?}", column_pairs);
+                //for pair in row_pairs {
+                //    let result = 0;
+                //   if result > 0 {
+                //      result_two += result;
+                //     break;
+                //}
+                //}
                 columns.clear();
                 rows.clear();
             }
         }
     }
-    println!("{}", result);
+    println!("{}", result_one);
+    //println!("{}", result_two);
     Ok(())
 }
 
+fn get_reflections_value(
+    rows: &Vec<String>,
+    columns: &Vec<String>,
+    row_hashes: &HashMap<usize, u64>,
+    column_hashes: &HashMap<usize, u64>,
+) -> usize {
+    let rows_above = get_reflected_count(rows, row_hashes);
+    let columns_left = get_reflected_count(columns, column_hashes);
+    rows_above * 100 + columns_left
+}
 fn get_reflected_count(lines: &Vec<String>, hashes: &HashMap<usize, u64>) -> usize {
     let mut reflections = 0;
     let len = lines.len();
@@ -92,4 +111,30 @@ fn to_hash(str: &str) -> u64 {
     let mut hasher = DefaultHasher::new();
     str.hash(&mut hasher);
     hasher.finish()
+}
+
+fn is_one_char_diff(s1: &String, s2: &String) -> bool {
+    let mut diff_count = 0;
+    for (char1, char2) in s1.chars().zip(s2.chars()) {
+        if char1 != char2 {
+            diff_count += 1;
+            if diff_count > 1 {
+                return false;
+            }
+        }
+    }
+    diff_count == 1
+}
+
+fn find_pairs_with_single_diff(strings: &Vec<String>) -> Vec<(usize, usize)> {
+    let mut pairs = Vec::new();
+    for i in 0..strings.len() {
+        for j in i + 1..strings.len() {
+            if is_one_char_diff(&strings[i], &strings[j]) {
+                pairs.push((i, j));
+                pairs.push((j, i));
+            }
+        }
+    }
+    pairs
 }
