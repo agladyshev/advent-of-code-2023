@@ -23,25 +23,26 @@ fn main() -> std::io::Result<()> {
         }
         let first_char = line.chars().next();
         match first_char {
-            Some('.') | Some('#') => {
+            Some(_) => {
                 for (i, char) in line.chars().enumerate() {
                     column_chars[i].push(char);
                 }
                 rows.push(line);
             }
-            None | _ => {
+            None => {
                 for chars in &column_chars {
                     let str: String = chars.into_iter().collect();
                     columns.push(str);
                 }
-                let original_row_reflections = get_reflections(&rows, &mut cached_hashes);
-                let original_column_reflections = get_reflections(&columns, &mut cached_hashes);
-                result_one += original_row_reflections
-                    .iter()
-                    .map(|&x| x * 100)
-                    .sum::<usize>()
-                    + original_column_reflections.iter().sum::<usize>();
+                let old_row_reflections = get_reflections(&rows, &mut cached_hashes);
+                let old_column_reflections = get_reflections(&columns, &mut cached_hashes);
+                let old_result = old_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
+                    + old_column_reflections.iter().sum::<usize>();
+                result_one += old_result;
+                let mut new_result = 0;
                 let row_pairs = find_pairs_with_single_diff(&rows);
+                let column_pairs = find_pairs_with_single_diff(&columns);
+                assert!(row_pairs.len() > 0 || column_pairs.len() > 0);
                 for pair in row_pairs {
                     let mut updated_rows = rows.clone();
                     let mut updated_columns = columns.clone();
@@ -57,20 +58,55 @@ fn main() -> std::io::Result<()> {
                         get_reflections(&updated_columns, &mut cached_hashes);
                     new_row_reflections = new_row_reflections
                         .into_iter()
-                        .filter(|x| !original_row_reflections.contains(x))
+                        .filter(|x| !old_row_reflections.contains(x))
                         .collect::<Vec<usize>>();
                     new_column_reflections = new_column_reflections
                         .into_iter()
-                        .filter(|x| !original_column_reflections.contains(x))
+                        .filter(|x| !old_column_reflections.contains(x))
                         .collect::<Vec<usize>>();
                     if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
-                        result_two += new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
+                        new_result = new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
                             + new_column_reflections.iter().sum::<usize>();
-                        if result_two > 0 {
+                        if new_result > 0 {
+                            result_two += new_result;
                             break;
                         }
                     }
                 }
+                if new_result == 0 {
+                    for pair in column_pairs {
+                        let mut updated_rows = rows.clone();
+                        let mut updated_columns = columns.clone();
+                        updated_columns[pair.0] = updated_columns[pair.1].clone();
+                        for i in 0..updated_rows.len() {
+                            let mut chars: Vec<char> = updated_rows[i].chars().collect();
+                            chars[pair.0] = chars[pair.1];
+                            updated_rows[i] = chars.into_iter().collect();
+                        }
+                        let mut new_row_reflections =
+                            get_reflections(&updated_rows, &mut cached_hashes);
+                        let mut new_column_reflections =
+                            get_reflections(&updated_columns, &mut cached_hashes);
+                        new_row_reflections = new_row_reflections
+                            .into_iter()
+                            .filter(|x| !old_row_reflections.contains(x))
+                            .collect::<Vec<usize>>();
+                        new_column_reflections = new_column_reflections
+                            .into_iter()
+                            .filter(|x| !old_column_reflections.contains(x))
+                            .collect::<Vec<usize>>();
+                        if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
+                            new_result =
+                                new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
+                                    + new_column_reflections.iter().sum::<usize>();
+                            if new_result > 0 {
+                                result_two += new_result;
+                                break;
+                            }
+                        }
+                    }
+                }
+                assert!(new_result > 0);
                 column_chars.clear();
                 columns.clear();
                 rows.clear();
@@ -86,17 +122,10 @@ fn get_reflections(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> Ve
     let mut reflections: Vec<usize> = Vec::new();
     let len = lines.len();
     for i in 1..len {
-        //println!("Mirror position: {}", i);
         let depth = min(i, len - i);
-        //println!("Depth: {} {} {}", depth, i, len - i);
         let (_before, _after) = lines.split_at(i);
         let mut is_mirror = true;
         for j in 0..depth {
-            //println!(
-            //    "{} {}",
-            //    hashes.get(&(i - j - 1)).expect("out of bounds before"),
-            //    hashes.get(&(i + j)).expect("out of bound after")
-            //)
             let left = &lines[i - j - 1];
             let right = &lines[i + j];
             if hashes.get(left).is_none() {
@@ -112,12 +141,9 @@ fn get_reflections(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> Ve
             if hashes.get(left).unwrap() != hashes.get(right).unwrap() {
                 is_mirror = false;
             }
-            //if row_hashes.get[i - j] == row_hashes.get[i + j];
         }
         if is_mirror {
             reflections.push(i);
-            //println!("{} {}", i, is_mirror);
-            //return reflections;
         }
     }
     reflections
