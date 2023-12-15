@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader};
 
 fn main() -> std::io::Result<()> {
-    let file = File::open("test.txt")?;
+    let file = File::open("input.txt")?;
     let reader = BufReader::new(file);
     let mut result_one = 0;
     let mut result_two = 0;
@@ -13,9 +13,8 @@ fn main() -> std::io::Result<()> {
     let mut columns: Vec<String> = Vec::new();
     let mut column_chars: Vec<Vec<char>> = Vec::new();
     let mut cached_hashes: HashMap<String, u64> = HashMap::new();
-    for (n, line_result) in reader.lines().enumerate() {
+    for line_result in reader.lines() {
         let line = line_result.expect("Bad line");
-        //println!("Line {} {}", n, &line);
         if column_chars.is_empty() {
             let columns_count = line.len();
             for _i in 0..columns_count {
@@ -35,42 +34,56 @@ fn main() -> std::io::Result<()> {
                     let str: String = chars.into_iter().collect();
                     columns.push(str);
                 }
+                let original_row_reflections = get_reflections(&rows, &mut cached_hashes);
+                let original_column_reflections = get_reflections(&columns, &mut cached_hashes);
+                result_one += original_row_reflections
+                    .iter()
+                    .map(|&x| x * 100)
+                    .sum::<usize>()
+                    + original_column_reflections.iter().sum::<usize>();
+                let row_pairs = find_pairs_with_single_diff(&rows);
+                for pair in row_pairs {
+                    let mut updated_rows = rows.clone();
+                    let mut updated_columns = columns.clone();
+                    updated_rows[pair.0] = updated_rows[pair.1].clone();
+                    for i in 0..updated_columns.len() {
+                        let mut chars = column_chars[i].clone();
+                        chars[pair.0] = chars[pair.1];
+                        updated_columns[i] = chars.into_iter().collect();
+                    }
+                    let mut new_row_reflections =
+                        get_reflections(&updated_rows, &mut cached_hashes);
+                    let mut new_column_reflections =
+                        get_reflections(&updated_columns, &mut cached_hashes);
+                    new_row_reflections = new_row_reflections
+                        .into_iter()
+                        .filter(|x| !original_row_reflections.contains(x))
+                        .collect::<Vec<usize>>();
+                    new_column_reflections = new_column_reflections
+                        .into_iter()
+                        .filter(|x| !original_column_reflections.contains(x))
+                        .collect::<Vec<usize>>();
+                    if new_row_reflections.len() != 0 || new_column_reflections.len() != 0 {
+                        result_two += new_row_reflections.iter().map(|&x| x * 100).sum::<usize>()
+                            + new_column_reflections.iter().sum::<usize>();
+                        if result_two > 0 {
+                            break;
+                        }
+                    }
+                }
                 column_chars.clear();
-                //let row_hashes: HashMap<usize, u64> = populate_hashmap(&rows);
-                //let column_hashes: HashMap<usize, u64> = populate_hashmap(&columns);
-                result_one += get_reflections_value(&rows, &columns, &mut cached_hashes);
-                //let row_pairs = find_pairs_with_single_diff(&rows);
-                //let column_pairs = find_pairs_with_single_diff(&columns);
-                //println!("Rows: {:?}", row_pairs);
-                //println!("Columns: {:?}", column_pairs);
-                //for pair in row_pairs {
-                //    let result = 0;
-                //   if result > 0 {
-                //      result_two += result;
-                //     break;
-                //}
-                //}
                 columns.clear();
                 rows.clear();
             }
         }
     }
     println!("{}", result_one);
-    //println!("{}", result_two);
+    println!("{}", result_two);
     Ok(())
 }
 
-fn get_reflections_value(
-    rows: &Vec<String>,
-    columns: &Vec<String>,
-    cached_hashes: &mut HashMap<String, u64>,
-) -> usize {
-    let rows_above = get_reflected_count(rows, cached_hashes);
-    let columns_left = get_reflected_count(columns, cached_hashes);
-    rows_above * 100 + columns_left
-}
-fn get_reflected_count(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> usize {
-    let mut reflections = 0;
+fn get_reflections(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -> Vec<usize> {
+    let mut reflections: Vec<usize> = Vec::new();
     let len = lines.len();
     for i in 1..len {
         //println!("Mirror position: {}", i);
@@ -102,21 +115,12 @@ fn get_reflected_count(lines: &Vec<String>, hashes: &mut HashMap<String, u64>) -
             //if row_hashes.get[i - j] == row_hashes.get[i + j];
         }
         if is_mirror {
-            reflections += i;
+            reflections.push(i);
+            //println!("{} {}", i, is_mirror);
+            //return reflections;
         }
-        //println!("{}", is_mirror);
     }
     reflections
-}
-
-fn populate_hashmap(strs: &Vec<String>) -> HashMap<usize, u64> {
-    let mut hashmap: HashMap<usize, u64> = HashMap::new();
-    let mut i = 0;
-    for str in strs {
-        hashmap.insert(i, to_hash(str));
-        i += 1;
-    }
-    hashmap
 }
 
 fn to_hash(str: &str) -> u64 {
